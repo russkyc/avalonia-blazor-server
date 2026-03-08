@@ -3,14 +3,20 @@ This is a sample of a Blazor Web App fully embedded inside an avalonia cross pla
 
 <img src="screenshot.png">
 
-### Why?
-We can't run a full hosted app on net-android, atleast officially. The goal of this project is to run both a ui and a web server on a portable device.
-And to be ale to access the web server from the ui and in browser or other devices on the same network.
+### Rationale
+We can't run a full ASP.NET hosted app on net-android (see), atleast officially. It is not planned as noted on these issues:
 
-#### Why not use Blazor Hybrid?
-Blazor-Maui hybrid's goal is to be able to use blazor components, web technology, and the razor syntax in the ui of a native app instead of using xaml.
+- [Github Issue: Run ASP.Net Core on Android+iOs Fully as if its a normal PC](https://github.com/dotnet/aspnetcore/issues/3204)
+- [Microsoft.Net.Sdk.Web on Android](https://github.com/dotnet/sdk/issues/29567)
 
-This is different, we want to host a full blazor web app. We want it to act as a server and be able to access it from a browser or other devices on the same network, without a pc or dedicated server. The UI of the app is just a webview to access the blazor web app, but the web app is fully functional and can be accessed from other devices on the same network.
+What if we really want to? Technically we can, and this project is the proof of concept.
+A cross-platform app capable of hosting a complete Blazor Web App, Accessible from the ui, in browser, or other devices on the same network.
+
+### Overview of how it works
+
+- `Microsoft.NET.Sdk.Web` cannot be used on android, so after creating a blazor web app, we set it to use `Microsoft.NET.Sdk.Razor`.
+- The `_framework/blazor.web.js` cannot be produced, so we take a copy of it from a running web app or produced assets of a normal web app.
+- The wwwroot content is embedded to not require copying the wwwroot folder to the android project.
 
 ### Example use cases (mobile-first, no PC required):
 
@@ -36,12 +42,7 @@ This is different, we want to host a full blazor web app. We want it to act as a
   When WAN/cloud access fails, the mobile-hosted server provides a continuity layer for critical local operations until normal connectivity returns.
 
 #### Should we be doing this?
-Technically no, but it is a fun experiment and can be useful for some specific use cases. So we are doing it anyway.
-### Overview of how it works
-
-- `Microsoft.NET.Sdk.Web` cannot be used on android, so after creating a blazor web app, we set it to use `Microsoft.NET.Sdk.Razor`.
-- The `_framework/blazor.web.js` cannot be produced, so we take a copy of it from a running web app or produced assets of a normal web app.
-- The wwwroot content is embedded to not require copying the wwwroot folder to the android project.
+Probably not mainly because android and mobile devices are not meant to be always-running server devices. But for these examples, we could arugue that it could be acceptable. So we are doing it anyway.
 
 ### Special thanks
 
