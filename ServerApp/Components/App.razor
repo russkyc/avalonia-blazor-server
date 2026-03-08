@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ServerApp</title>
+    <base href="/"/>
+    <ResourcePreloader/>
+    <ImportMap/>
+    <link rel="stylesheet" href="@Assets["css/blazor-ui.css"]"/>
+    <HeadOutlet @rendermode="@InteractiveServer"/>
+</head>
+<body>
+<Routes @rendermode="@InteractiveServer"/>
+<script src="@Assets["framework/blazor.web.js"]"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0-android</TargetFramework>
+        <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+        <Nullable>enable</Nullable>
+        <ApplicationId>com.CompanyName.AvaloniaBlazorServer</ApplicationId>
+        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <AndroidPackageFormat>apk</AndroidPackageFormat>
+        <!-- Both needed to be set to false in order for the Asp.Net dll references to work on android -->
+        <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+        <RunAOTCompilation>false</RunAOTCompilation>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!--Remove or replace with your android sdk folder-->
+        <AndroidSdkDirectory>C:\Users\russ\AppData\Local\Android\sdk</AndroidSdkDirectory>
+        <!--Replace version with the dotnet sdk version you are using, see the Microsoft.AspNetCore.App folder for the exact versions-->
+        <_AspNetCoreRefPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1</_AspNetCoreRefPath>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <AndroidResource Include="Icon.png">
+            <Link>Resources\drawable\Icon.png</Link>
+        </AndroidResource>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia.Android"/>
+        <PackageReference Include="WebView.Avalonia.Android" />
+        <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
+        <!-- Asp.Net dll workaround, we include the dll's manually -->
+        <Reference Include="$(_AspNetCoreRefPath)\*.dll" Exclude="$(_AspNetCoreRefPath)\aspnetcorev2_inprocess.dll" />
+    </ItemGroup>
+</Project>
