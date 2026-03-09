@@ -1,4 +1,4 @@
-﻿## Avalonia Embedded Blazor Web App Host (Interactive Server)
+﻿﻿## Avalonia Embedded Blazor Web App Host (Interactive Server)
 This is a sample of a Blazor Web App Server running from an android device,
 without the need of a PC, and accessible from the ui(webview), in browser, or other devices on the same network.
 Using wifi or the device hotspot, you can have other devices connect to the server.
@@ -61,7 +61,7 @@ The blazor web app is a normal blazor web app, but the template used was from [B
 Note that this is for interactive server mode, if you are using wasm or blazor webassembly the names might be different.
 
 ##### Steps:
-Run the web app initially and get a copy of the `blazor.web.js` file from the running app `http://<host>:<port>/_framework/blazor.web.js`. This is required because the build process cannot produce it when using `Microsoft.NET.Sdk.Razor`. Stop the app after copying the file. Save this to the `wwwroot/framework/` folder of the web app project update the path in the root compnent:
+The build process automatically syncs the `blazor.web.js` file and other framework assets from the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package during the build. This is handled by the `ServerApp.targets` MSBuild file which runs as part of the package resolution process.
 ```razorhtmldialect
 <!DOCTYPE html>
 <html lang="en">
@@ -77,8 +77,7 @@ Run the web app initially and get a copy of the `blazor.web.js` file from the ru
 </head>
 <body>
 <Routes @rendermode="@InteractiveServer"/>
-@*Use the extracted blazor.web.js*@
-<script src="@Assets["framework/blazor.web.js"]"></script>
+<script src="_framework/blazor.web.js"></script>
 </body>
 </html>
 ```
@@ -105,17 +104,67 @@ Replace `Microsoft.NET.Sdk.Web` with `Microsoft.NET.Sdk.Razor`. And set the proj
     <EmbeddedResource Include="wwwroot\**\*" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
   </ItemGroup>
   <ItemGroup>
     <_ContentIncludedByDefault Remove="Properties\launchSettings.json" />
   </ItemGroup>
+  <Import Project="ServerApp.targets" />
 </Project>
 ```
 - Reference the aspnetcore dll's
 - Embed the wwwroot content as embedded resources
-- Add the `Microsoft.Extensions.FileProviders.Embedded` package
+- Add the `Microsoft.Extensions.FileProviders.Embedded` package for embedded file provider support
+- Add the `Microsoft.AspNetCore.App.Internal.Assets` package to provide framework and library assets
+- Import `ServerApp.targets` which handles syncing the framework assets (like `blazor.web.js`) and library assets to the wwwroot folder during build
 
+##### ServerApp.targets File
+The `ServerApp.targets` is a custom MSBuild targets file that automates the synchronization of framework and library assets. This file contains two main targets:
+
+1. **SyncAllAssetsToLocalWwwroot** (runs after ResolvePackageAssets)
+   - Extracts the `Microsoft.AspNetCore.App.Internal.Assets` NuGet package version
+   - Copies framework assets (like `blazor.web.js`) from the NuGet package to `wwwroot/_framework/`
+   - Copies library assets from referenced packages to `wwwroot/_content/` with proper folder structure
+   - Uses `SkipUnchangedFiles` to avoid unnecessary copying during builds
+
+2. **CleanSyncedAssets** (runs before Clean)
+   - Removes synced assets from the wwwroot directory when running `dotnet clean`
+   - Prevents stale assets from persisting between builds
+
+Here's the complete ServerApp.targets file:
+```xml
+<Project>
+    <Target Name="SyncAllAssetsToLocalWwwroot" AfterTargets="ResolvePackageAssets">
+        <ItemGroup>
+            <InternalPkgMetadata Include="@(PackageVersion)" Condition="'%(Identity)' == 'Microsoft.AspNetCore.App.Internal.Assets'" />
+        </ItemGroup>
+        <PropertyGroup>
+            <InternalPkgVersion>%(InternalPkgMetadata.Version)</InternalPkgVersion>
+            <InternalPkgPath>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets\$(InternalPkgVersion)\_framework\</InternalPkgPath>
+        </PropertyGroup>
+        <ItemGroup>
+            <!-- Include only the .web.js from the modern web app template -->
+            <FrameworkFiles Include="$(InternalPkgPath)**\*.web.js" />
+            <LibraryAssets Include="@(StaticWebAsset)" Condition="'%(SourceType)' == 'Package' AND !$([System.String]::new('%(RelativePath)').StartsWith('_framework/'))" />
+        </ItemGroup>
+        <Copy SourceFiles="@(FrameworkFiles)"
+              DestinationFolder="$(ProjectDir)wwwroot\_framework\%(RecursiveDir)"
+              SkipUnchangedFiles="true"
+              Condition="'$(InternalPkgVersion)' != ''" />
+        <Copy SourceFiles="%(LibraryAssets.FullPath)"
+              DestinationFiles="$(ProjectDir)wwwroot\_content\%(LibraryAssets.SourceId)\%(LibraryAssets.RelativePath)"
+              SkipUnchangedFiles="true" />
+        <Message Importance="high"
+                 Text="Syncing Framework Assets from Version: $(InternalPkgVersion)"
+                 Condition="'$(InternalPkgVersion)' != ''" />
+    </Target>
+
+    <Target Name="CleanSyncedAssets" BeforeTargets="Clean">
+        <RemoveDir Directories="$(ProjectDir)wwwroot\_content;$(ProjectDir)wwwroot\_framework" />
+    </Target>
+</Project>
+```
 
 Remove `Program.cs` and move the startup code to a separate class with a `Start` method that can be called from the avalonia app. Note that it doesn't need to be static
 this is just for simplicity.
@@ -285,15 +334,15 @@ Now you have a fully working blazor web app running on android and desktop, acce
 
 ### Thoughts and Next Steps
 
-The current setup is hacky and has some downsides:
-- We have to manually copy the `blazor.web.js` file and reference it, which is not ideal. It would be better if we could produce it as part of the build process.
-- Css isolation is not working (since assets are not being produced as part of the build process), so we have to use global css for styling.
+The current setup has improved significantly with the introduction of the `ServerApp.targets` MSBuild file, which automatically handles syncing the `blazor.web.js` and other framework/library assets from NuGet packages. However, there are still some areas for improvement:
+
+- Css isolation is still not working (since assets are being synced but not all build artifacts are produced as part of the normal build process), so we have to use global css for styling.
 - Which also means that ui libraries that rely on css isolation won't work without modification.
 
 ##### Next steps:
 
-- Programmaticaly produce the `blazor.web.js` file as part of the build process, preferrably fix the build process to produce it and other static assets properly.
-- Find a way to better handle the AspNet Core dll references, maybe by using a nuget package or something similar instead of manually referencing the dll's from the framework folder.
+- Find a way to enable proper CSS isolation when using `Microsoft.NET.Sdk.Razor` instead of `Microsoft.NET.Sdk.Web`.
+- Explore if we can improve the asset syncing to handle more complex UI library scenarios automatically.
 - Look for ios workarounds, since it should be possible to run on ios with the right configuration, but I don't have access to a mac to test and develop those workarounds.
 
 ### Special thanks
