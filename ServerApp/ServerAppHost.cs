@@ -18,14 +18,17 @@ public static class ServerAppHost
 
     public static Task Start(CancellationToken serverTokenToken = default, int port = 5000, bool broadcast = true)
     {
+        // Configure to properly resolve the static assets from the embedded resources
         var assemblyName = typeof(ServerAppHost).Assembly.GetName().Name;
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             ApplicationName = assemblyName
         });
 
+        // set what IP addresses Kestrel should listen on. If broadcast is true, listen on all IPs, otherwise only on localhost
         builder.WebHost.ConfigureKestrel((_, serverOptions) =>
             serverOptions.Listen(broadcast ? IPAddress.Any : IPAddress.Loopback, port));
+        // Enable static web assets
         builder.WebHost.UseStaticWebAssets();
 
         builder.Services.AddRazorComponents()
@@ -41,6 +44,8 @@ public static class ServerAppHost
         }
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+        
+        // Use an embedded file provider to serve static files from the assembly's wwwroot folder
         var embeddedProvider = new EmbeddedFileProvider(
             typeof(ServerAppHost).Assembly,
             $"{assemblyName}.wwwroot"
@@ -58,9 +63,13 @@ public static class ServerAppHost
 
         var server = app.Services.GetRequiredService<IServer>();
         var addressesFeature = server.Features.Get<IServerAddressesFeature>();
-
+        
+        // We could also use app.RunAsync() here, but StartAsync()
+        // allows us to do additional work (like listing the URLs)
         app.StartAsync(serverTokenToken);
 
+        // this is just used to list the actual URLs the server is listening on,
+        // so we can display them in the UI and let the user know how to connect to the server from their mobile device.
         if (addressesFeature != null)
         {
             // The Addresses collection contains all configured URLs
@@ -94,6 +103,6 @@ public static class ServerAppHost
             }
         }
 
-        return app.WaitForShutdownAsync();
+        return app.WaitForShutdownAsync(token: serverTokenToken);
     }
 }

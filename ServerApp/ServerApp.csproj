@@ -1,12 +1,14 @@
+<!-- Change to Sdk.Razor from Sdk.Web -->
 <Project Sdk="Microsoft.NET.Sdk.Razor">
-
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Set as class library insteaf of executable -->
         <OutputType>Library</OutputType>
     </PropertyGroup>
     <ItemGroup>
+        <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
         <Reference
                 Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
                 Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll">
@@ -15,6 +17,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <!-- Configure to embed the wwwroot folder -->
         <Content Remove="wwwroot\**" />
         <EmbeddedResource Include="wwwroot\**\*" />
     </ItemGroup>

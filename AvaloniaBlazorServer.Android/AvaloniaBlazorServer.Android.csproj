@@ -14,10 +14,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <!--Remove or replace with your android sdk folder-->
         <AndroidSdkDirectory>C:\Users\russ\AppData\Local\Android\sdk</AndroidSdkDirectory>
-        <!--Replace version with the dotnet sdk version you are using, see the Microsoft.AspNetCore.App folder for the exact versions-->
-        <_AspNetCoreRefPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1</_AspNetCoreRefPath>
     </PropertyGroup>
     
     <ItemGroup>
@@ -34,7 +31,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
-        <!-- Asp.Net dll workaround, we include the dll's manually -->
-        <Reference Include="$(_AspNetCoreRefPath)\*.dll" Exclude="$(_AspNetCoreRefPath)\aspnetcorev2_inprocess.dll" />
+        <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
+        <Reference
+                Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
+                Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll">
+            <Private>False</Private>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </Reference>
     </ItemGroup>
 </Project>

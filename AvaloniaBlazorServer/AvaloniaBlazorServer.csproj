@@ -19,9 +19,11 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <!-- Optional, but we use it to display the hosted server within the app. Not needed if you only plan to access from browser or other devices -->
         <PackageReference Include="WebView.Avalonia" />
     </ItemGroup>
     <ItemGroup>
+        <!-- Reference the server class library project -->
         <ProjectReference Include="..\ServerApp\ServerApp.csproj" />
     </ItemGroup>
 </Project>
