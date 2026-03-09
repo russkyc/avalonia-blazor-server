@@ -8,7 +8,8 @@
             <InternalPkgPath>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets\$(InternalPkgVersion)\_framework\</InternalPkgPath>
         </PropertyGroup>
         <ItemGroup>
-            <FrameworkFiles Include="$(InternalPkgPath)**\*.js" />
+            <!-- Include only the .web.js from the modern web app template -->
+            <FrameworkFiles Include="$(InternalPkgPath)**\*.web.js" />
             <LibraryAssets Include="@(StaticWebAsset)" Condition="'%(SourceType)' == 'Package' AND !$([System.String]::new('%(RelativePath)').StartsWith('_framework/'))" />
         </ItemGroup>
         <Copy SourceFiles="@(FrameworkFiles)"
