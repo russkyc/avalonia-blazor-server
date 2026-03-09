@@ -233,35 +233,10 @@ public static class ServerAppHost
 Reference the server project
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <AvaloniaResource Include="Assets\**"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Avalonia"/>
-        <PackageReference Include="Avalonia.Themes.Fluent"/>
-        <PackageReference Include="Avalonia.Fonts.Inter"/>
-        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Include="Avalonia.Diagnostics">
-            <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
-            <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
-        </PackageReference>
-        <!-- Optional, but we use it to display the hosted server within the app. Not needed if you only plan to access from browser or other devices -->
-        <PackageReference Include="WebView.Avalonia" />
-    </ItemGroup>
-    <ItemGroup>
-        <!-- Reference the server class library project -->
-        <ProjectReference Include="..\ServerApp\ServerApp.csproj" />
-    </ItemGroup>
-</Project>
+<ItemGroup>
+    <!-- Reference the server class library project -->
+    <ProjectReference Include="..\ServerApp\ServerApp.csproj" />
+</ItemGroup>
 ```
 
 Call the `Start` method of the server from the avalonia app, for example in `App.axaml.cs`. We use a cancellation token to be able to stop the server when the app is closed.
@@ -272,7 +247,7 @@ _server = ServerAppHost.Start(_serverTokenSource.Token);
 
 #### III. The Android and Desktop projects
 
-We also need to add the references to the aspnetcore dll's in the android project `AvaloniaBlazorServer.Android.csproj`
+We need to add the references to the aspnetcore dll's in the android project `AvaloniaBlazorServer.Android.csproj`
 
 ```xml
 <ItemGroup>
@@ -286,7 +261,17 @@ We also need to add the references to the aspnetcore dll's in the android projec
 </ItemGroup>
 ```
 
-In the desktop project we could just reference `Aspnetcore.App` since it is supported in the desktop platform.
+To make it actually run and not just crash, we need to configure the android project to not use AOT.
+
+```xml
+<PropertyGroup>
+    <!-- Both needed to be set to false in order for the Asp.Net dll references to work on android -->
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    <RunAOTCompilation>false</RunAOTCompilation>
+</PropertyGroup>
+```
+
+In the desktop project (`AvaloniaBlazorServer.Desktop.csproj`) we could just reference `Aspnetcore.App` since it is supported in the desktop platform.
 
 ```xml
 <ItemGroup>
