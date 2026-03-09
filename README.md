@@ -1,5 +1,5 @@
-﻿## Avalonia Embedded Blazor Web App (Interactive Server)
-This is a sample of a Blazor Web App fully embedded inside an avalonia cross platform app that runs on desktop and android. (ios is currently not working, but should be possible with more workarounds)
+﻿## Avalonia Embedded Blazor Web App Host (Interactive Server)
+This is a sample of a Blazor Web App Server fully embedded and hosted inside an Avalonia app, running on both desktop and android. The blazor web app is accessible from the ui (with a webview), in browser, or other devices on the same network. Without the need of a pc, just a mobile device running the app and hosting the server.
 
 <img src="screenshot.png">
 
