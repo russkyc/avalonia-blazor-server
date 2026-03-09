@@ -5,6 +5,11 @@ Using wifi or the device hotspot, you can have other devices connect to the serv
 
 <img src="screenshot.png">
 
+### Want to try it out?
+You can do one of the following:
+- Clone the repo and run the `AvaloniaBlazorServer.Android` project, you can also run the desktop project `AvaloniaBlazorServer.Desktop` to see it working on desktop.
+- Download the apk from the [releases](https://github.com/russkyc/avalonia-blazor-server/releases) and install it on your android device.
+
 ### Rationale
 We can't run a full ASP.NET hosted app on net-android (see), atleast officially. It is not planned as noted on these issues:
 
@@ -91,12 +96,8 @@ Replace `Microsoft.NET.Sdk.Web` with `Microsoft.NET.Sdk.Razor`. And set the proj
   </PropertyGroup>
   <ItemGroup>
     <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
-    <Reference
-            Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
-            Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll">
-      <Private>False</Private>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Reference>
+    <Reference Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
+               Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll" />
   </ItemGroup>
   <ItemGroup>
     <!-- Configure to embed the wwwroot folder -->
@@ -256,10 +257,7 @@ We need to add the references to the aspnetcore dll's in the android project `Av
     <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
     <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
     <Reference Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
-               Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll">
-        <Private>False</Private>
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Reference>
+               Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll"/>
 </ItemGroup>
 ```
 
