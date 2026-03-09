@@ -8,9 +8,13 @@
     <ResourcePreloader/>
     <ImportMap/>
     <link rel="stylesheet" href="@Assets["css/blazor-ui.css"]"/>
+    <!-- Theme variables (customize colors, radius, etc.) -->
+    <link href="css/theme.css" rel="stylesheet" />
+    <link href="_content/BlazorBlueprint.Components/blazorblueprint.css" rel="stylesheet" />
+    <link href="css/app.min.css" rel="stylesheet" />
     <HeadOutlet @rendermode="@InteractiveServer"/>
 </head>
-<body>
+<body class="flex flex-col min-h-dvh w-full">
 <Routes @rendermode="@InteractiveServer"/>
 @*Use the extracted blazor.web.js*@
 <script src="@Assets["_framework/blazor.web.js"]"></script>
