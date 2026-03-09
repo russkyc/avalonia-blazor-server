@@ -18,9 +18,8 @@
         <EmbeddedResource Include="wwwroot\**\*" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
       <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     </ItemGroup>
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="Properties\launchSettings.json" />
-    </ItemGroup>
+    <Import Project="ServerApp.targets" />
 </Project>

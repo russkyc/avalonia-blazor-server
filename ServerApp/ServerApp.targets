@@ -1,0 +1,29 @@
+﻿<Project>
+    <Target Name="SyncAllAssetsToLocalWwwroot" AfterTargets="ResolvePackageAssets">
+        <ItemGroup>
+            <InternalPkgMetadata Include="@(PackageVersion)" Condition="'%(Identity)' == 'Microsoft.AspNetCore.App.Internal.Assets'" />
+        </ItemGroup>
+        <PropertyGroup>
+            <InternalPkgVersion>%(InternalPkgMetadata.Version)</InternalPkgVersion>
+            <InternalPkgPath>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets\$(InternalPkgVersion)\_framework\</InternalPkgPath>
+        </PropertyGroup>
+        <ItemGroup>
+            <FrameworkFiles Include="$(InternalPkgPath)**\*.js" />
+            <LibraryAssets Include="@(StaticWebAsset)" Condition="'%(SourceType)' == 'Package' AND !$([System.String]::new('%(RelativePath)').StartsWith('_framework/'))" />
+        </ItemGroup>
+        <Copy SourceFiles="@(FrameworkFiles)"
+              DestinationFolder="$(ProjectDir)wwwroot\_framework\%(RecursiveDir)"
+              SkipUnchangedFiles="true"
+              Condition="'$(InternalPkgVersion)' != ''" />
+        <Copy SourceFiles="%(LibraryAssets.FullPath)"
+              DestinationFiles="$(ProjectDir)wwwroot\_content\%(LibraryAssets.SourceId)\%(LibraryAssets.RelativePath)"
+              SkipUnchangedFiles="true" />
+        <Message Importance="high"
+                 Text="Syncing Framework Assets from Version: $(InternalPkgVersion)"
+                 Condition="'$(InternalPkgVersion)' != ''" />
+    </Target>
+
+    <Target Name="CleanSyncedAssets" BeforeTargets="Clean">
+        <RemoveDir Directories="$(ProjectDir)wwwroot\_content;$(ProjectDir)wwwroot\_framework" />
+    </Target>
+</Project>
