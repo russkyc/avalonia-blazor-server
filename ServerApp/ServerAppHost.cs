@@ -9,15 +9,20 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Russkyc.Messaging;
 using ServerApp.Components;
+using ServerApp.Messages;
 
 namespace ServerApp;
 
 public static class ServerAppHost
 {
+    // Configuration
+    public const int Port = 5000;
+    
     public static ICollection<string> Hosts { get; } = new List<string>();
 
-    public static Task Start(CancellationToken serverTokenToken = default, int port = 5000, bool broadcast = true)
+    public static Task Start(CancellationToken serverTokenToken = default)
     {
         // Configure to properly resolve the static assets from the embedded resources
         var assemblyName = typeof(ServerAppHost).Assembly.GetName().Name;
@@ -27,8 +32,7 @@ public static class ServerAppHost
         });
 
         // set what IP addresses Kestrel should listen on. If broadcast is true, listen on all IPs, otherwise only on localhost
-        builder.WebHost.ConfigureKestrel((_, serverOptions) =>
-            serverOptions.Listen(broadcast ? IPAddress.Any : IPAddress.Loopback, port));
+        builder.WebHost.ConfigureKestrel((_, serverOptions) => serverOptions.Listen(IPAddress.Any, Port));
         // Enable static web assets
         builder.WebHost.UseStaticWebAssets();
 
@@ -96,16 +100,19 @@ public static class ServerAppHost
 
                         var host = ipv4.Address.ToString() == "127.0.0.1" ? "localhost" : ipv4.Address.ToString();
                         var portSuffix = uri.Port == 80 ? "" : $":{uri.Port}";
-                        Hosts?.Add($"{uri.Scheme}://{host}{portSuffix}");
+                        Hosts.Add($"{uri.Scheme}://{host}{portSuffix}");
                     }
                 }
                 else
                 {
-                    Hosts?.Add(url);
+                    Hosts.Add(url);
                 }
             }
         }
 
+        var localhost = Hosts.First(h => h.Contains("localhost"));
+        WeakReferenceMessenger.Default.Send(new ServerStartedEvent(localhost));
+        
         return app.WaitForShutdownAsync(token: serverTokenToken);
     }
 }

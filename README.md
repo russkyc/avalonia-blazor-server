@@ -3,6 +3,8 @@ This is a sample of a Blazor Web App Server running from an android device,
 without the need of a PC, and accessible from the ui(webview), in browser, or other devices on the same network.
 Using wifi or the device hotspot, you can have other devices connect to the server.
 
+**Note:** The Android app now runs the server in a foreground service. This ensures the server remains active even when the app is not in the foreground or the screen is off.
+
 <img src="screenshot.png">
 
 ### Want to try it out?
@@ -11,9 +13,10 @@ You can do one of the following:
 - Download the apk from the [releases](https://github.com/russkyc/avalonia-blazor-server/releases) and install it on your android device.
 
 ### Rationale
-We can't run a full ASP.NET hosted app on net-android (see), atleast officially. It is not planned as noted on these issues:
+We can't run a full ASP.NET hosted app on net-android, let alone the full blazor web app. It is not supported officially, and support is not planned as noted on these issues:
 
 - [Github Issue: Run ASP.Net Core on Android+iOs Fully as if its a normal PC](https://github.com/dotnet/aspnetcore/issues/3204)
+- [Support for Maui runtimes in ASP.NET Core?](https://github.com/dotnet/aspnetcore/issues/35077)
 - [Microsoft.Net.Sdk.Web on Android](https://github.com/dotnet/sdk/issues/29567)
 
 What if we really want to? Technically we can, and this project is the proof of concept.
@@ -297,7 +300,21 @@ Call the `Start` method of the server from the avalonia app, for example in `App
 _server = ServerAppHost.Start(_serverTokenSource.Token);
 ```
 
-#### III. The Android and Desktop projects
+#### III. The Android and Desktop Projects
+
+##### Desktop Setup
+
+In the desktop project (`AvaloniaBlazorServer.Desktop.csproj`) we could just reference `Aspnetcore.App` since it is supported in the desktop platform.
+
+```xml
+<ItemGroup>
+    <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
+    <!-- Used instead of manuall dll reference since AspNetCore dll's can actually target desktop platforms -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+</ItemGroup>
+```
+
+##### Android Setup
 
 We need to add the references to the aspnetcore dll's in the android project `AvaloniaBlazorServer.Android.csproj`
 
@@ -310,24 +327,137 @@ We need to add the references to the aspnetcore dll's in the android project `Av
 </ItemGroup>
 ```
 
-To make it actually run and not just crash, we need to configure the android project to not use AOT.
+To ensure the ASP.NET Core DLLs work on Android, you must disable all AOT (Ahead-Of-Time) compilation options in your Android project file (`AvaloniaBlazorServer.Android.csproj`). Add these properties:
 
 ```xml
-<PropertyGroup>
-    <!-- Both needed to be set to false in order for the Asp.Net dll references to work on android -->
-    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
-    <RunAOTCompilation>false</RunAOTCompilation>
-</PropertyGroup>
+<!-- Disable AOT configurations in order for the Asp.Net dll references to work on android -->
+<AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+<RunAOTCompilation>false</RunAOTCompilation>
+<PublishAot>false</PublishAot>
 ```
 
-In the desktop project (`AvaloniaBlazorServer.Desktop.csproj`) we could just reference `Aspnetcore.App` since it is supported in the desktop platform.
+Place these inside the main `<PropertyGroup>` in your `.csproj` file. This is required because AOT is not compatible with the dynamic loading and reflection used by ASP.NET Core.
+
+To run the server reliably in the background on Android we use a foreground service. This ensures the server is not killed by the OS when the app is backgrounded or the screen is off.
+
+Add the following permissions to your `AndroidManifest.xml`:
 
 ```xml
-<ItemGroup>
-    <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
-    <!-- Used instead of manuall dll reference since AspNetCore dll's can actually target desktop platforms -->
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-</ItemGroup>
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+```
+
+Foreground Service Implementation
+Create a `HostService` class in `AvaloniaBlazorServer.Android/HostService.cs`:
+
+```csharp
+using System.Threading;
+using System.Threading.Tasks;
+using Android.App;
+using Android.Content;
+using Android.OS;
+using AndroidX.Core.App;
+using ServerApp;
+
+namespace AvaloniaBlazorServer.Android;
+
+[Service(Enabled = true, Exported = false, ForegroundServiceType = ForegroundService.TypeSpecialUse)]
+public class HostService : Service
+{
+    private const int NotificationId = 1;
+    private const string NotificationChannelId = "com.russkyc.avaloniablazorserver";
+    private const string NotificationChannelName = "Blazor Web Server Channel";
+    private const string NotificationTitle = "Blazor Web Server";
+    private const string NotificationText = "Blazor web server is running in the background";
+    private readonly CancellationTokenSource _tokenSource = new();
+    private PowerManager.WakeLock? _wakeLock;
+    private Task? _serverTask;
+
+    public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
+    {
+        StartForegroundService();
+        AcquireWakeLock();
+        _serverTask = ServerAppHost.Start(_tokenSource.Token);
+        return StartCommandResult.Sticky;
+    }
+
+    public override void OnDestroy()
+    {
+        _tokenSource.Cancel();
+        _serverTask?.Wait();
+        if (_wakeLock is { IsHeld: true })
+        {
+            _wakeLock.Release();
+            _wakeLock = null;
+        }
+        base.OnDestroy();
+    }
+
+    public override IBinder? OnBind(Intent? intent) => null;
+
+    private void StartForegroundService()
+    {
+        if (GetSystemService(NotificationService) is not NotificationManager notificationManager)
+            return;
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            CreateNotificationChannel(notificationManager);
+        var builder = new NotificationCompat.Builder(this, NotificationChannelId)
+            .SetCategory(NotificationCompat.CategoryService)
+            .SetPriority(NotificationCompat.PriorityDefault)
+            .SetSmallIcon(Resource.Drawable.Icon)
+            .SetContentTitle(NotificationTitle)
+            .SetContentText(NotificationText)
+            .SetOngoing(true);
+        var notification = builder.Build();
+        StartForeground(NotificationId, notification);
+    }
+
+    private void CreateNotificationChannel(NotificationManager notificationManager)
+    {
+        var channel = new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Default);
+        notificationManager.CreateNotificationChannel(channel);
+    }
+
+    private void AcquireWakeLock()
+    {
+        if (_wakeLock is { IsHeld: true }) return;
+        var powerManager = (PowerManager)GetSystemService(PowerService)!;
+        _wakeLock = powerManager.NewWakeLock(WakeLockFlags.Partial, "BlazorWebServer:WakeLock");
+        _wakeLock!.Acquire();
+    }
+}
+```
+
+Starting the Foreground Service from MainActivity
+In `MainActivity.cs`, start the foreground service when the app launches:
+
+```csharp
+protected override void OnCreate(Bundle? savedInstanceState)
+{
+    base.OnCreate(savedInstanceState);
+    new Handler(Looper.MainLooper!).Post(StartHostService);
+}
+
+private void StartHostService()
+{
+    if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        CheckAndRequestNotificationPermission();
+    var intent = new Intent(this, typeof(HostService));
+    if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+        StartForegroundService(intent);
+    else
+        StartService(intent);
+}
+
+[SupportedOSPlatform("android33.0")]
+void CheckAndRequestNotificationPermission()
+{
+    if (ContextCompat.CheckSelfPermission(this, Manifest.Permission.PostNotifications) != (int)Permission.Granted)
+        ActivityCompat.RequestPermissions(this, [Manifest.Permission.PostNotifications], 0);
+}
 ```
 
 Now you have a fully working blazor web app running on android and desktop, accessible from the ui (with a webview), in browser, or other devices on the same network.
@@ -336,16 +466,14 @@ Now you have a fully working blazor web app running on android and desktop, acce
 
 The current setup has improved significantly with the introduction of the `ServerApp.targets` MSBuild file, which automatically handles syncing the `blazor.web.js` and other framework/library assets from NuGet packages. However, there are still some areas for improvement:
 
-- Css isolation is still not working (since assets are being synced but not all build artifacts are produced as part of the normal build process), so we have to use global css for styling.
-- Which also means that ui libraries that rely on css isolation won't work without modification.
+- CSS isolation is still not working (since assets are being synced but not all build artifacts are produced as part of the normal build process).
 
 ##### Next steps:
 
 - Find a way to enable proper CSS isolation when using `Microsoft.NET.Sdk.Razor` instead of `Microsoft.NET.Sdk.Web`.
-- Explore if we can improve the asset syncing to handle more complex UI library scenarios automatically.
-- Look for ios workarounds, since it should be possible to run on ios with the right configuration, but I don't have access to a mac to test and develop those workarounds.
+- Look for ios workarounds to run on ios, but I don't have access to a mac to test and develop those workarounds.
 
 ### Special thanks
 
-this is heavily inspired from [ASP.NET Core in Maui](https://github.com/JamesNK/aspnetcore-maui). Huge credit to JamesNK for discovering the workarounds
-to run ASP.NET unofficially in unsupported platforms.
+I wouldn't have made it this far without the [ASP.NET Core in Maui](https://github.com/JamesNK/aspnetcore-maui) project. Huge credit to JamesNK for discovering the workarounds
+to run ASP.NET unofficially in maui on mobile.
