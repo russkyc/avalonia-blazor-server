@@ -1,22 +1,23 @@
 using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using AvaloniaWebView;
+using Russkyc.Messaging;
 using ServerApp;
+using ServerApp.Messages;
 
 namespace AvaloniaBlazorServer;
 
 public partial class App : Application
 {
     private readonly CancellationTokenSource _serverTokenSource = new();
-    private Task? _server;
-    
+    private Task? _serverTask;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -24,46 +25,43 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        _server = ServerAppHost.Start(_serverTokenSource.Token);
-        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
-            DisableAvaloniaDataAnnotationValidation();
+            _serverTask = ServerAppHost.Start(_serverTokenSource.Token);
             desktop.MainWindow = new Window()
             {
                 Content = new WebView()
                 {
-                    Url = new Uri(ServerAppHost.Hosts.First())
+                    Url = new Uri($"localhost:{ServerAppHost.Port}"),
                 }
             };
             desktop.ShutdownRequested += (_, _) =>
             {
-                _serverTokenSource.CancelAsync().ContinueWith(_ => _server.Dispose());
+                _serverTokenSource.CancelAsync().ContinueWith(_ =>
+                {
+                    _serverTask.Wait();
+                    _serverTask = null;
+                });
             };
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            singleViewPlatform.MainView = new WebView()
+            var webview = new WebView();
+            webview.Loaded += (self, _) =>
             {
-                Url = new Uri(ServerAppHost.Hosts.First())
+                var blazorWebview = (WebView)self!;
+
+                // The server is started from a foreground service,
+                // wait for the server to start before navigating to the URL
+                WeakReferenceMessenger.Default.Register<ServerStartedEvent>(blazorWebview, (_, message) =>
+                {
+                    Console.WriteLine(message.HostUrl);
+                    Dispatcher.UIThread.Invoke(() => blazorWebview.Url = new Uri(message.HostUrl));
+                });
             };
+            singleViewPlatform.MainView = webview;
         }
 
         base.OnFrameworkInitializationCompleted();
-    }
-
-    private void DisableAvaloniaDataAnnotationValidation()
-    {
-        // Get an array of plugins to remove
-        var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
-
-        // remove each entry found
-        foreach (var plugin in dataValidationPluginsToRemove)
-        {
-            BindingPlugins.DataValidators.Remove(plugin);
-        }
     }
 }

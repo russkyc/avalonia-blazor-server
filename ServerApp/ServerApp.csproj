@@ -15,13 +15,13 @@
     <ItemGroup>
         <!-- Configure to embed the wwwroot folder -->
         <Content Remove="wwwroot\**" />
-        <Content Include="wwwroot\css\app.css" />
         <EmbeddedResource Include="wwwroot\**\*" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="BlazorBlueprint.Components" />
       <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
       <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
+      <PackageReference Include="Russkyc.Messaging" />
     </ItemGroup>
     <Import Project="ServerApp.targets" />
 </Project>
