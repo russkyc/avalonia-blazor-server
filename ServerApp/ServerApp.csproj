@@ -8,19 +8,7 @@
         <OutputType>Library</OutputType>
     </PropertyGroup>
     <ItemGroup>
-        <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
-        <Reference Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
-                   Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll" />
-    </ItemGroup>
-    <ItemGroup>
-        <!-- Configure to embed the wwwroot folder -->
-        <Content Remove="wwwroot\**" />
-        <EmbeddedResource Include="wwwroot\**\*" />
-    </ItemGroup>
-    <ItemGroup>
       <PackageReference Include="BlazorBlueprint.Components" />
-      <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" />
-      <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
       <PackageReference Include="Russkyc.Messaging" />
     </ItemGroup>
     <Import Project="ServerApp.targets" />
