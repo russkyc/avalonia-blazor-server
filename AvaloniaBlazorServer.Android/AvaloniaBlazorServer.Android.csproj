@@ -32,9 +32,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
-        <!-- Include references to the AspNetCore dlls of the current framework, your exact version folder may vary -->
-        <Reference
-                Include="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\*.dll"
-                Exclude="C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.1\aspnetcorev2_inprocess.dll"/>
+        <ProjectReference Include="..\ServerApp\ServerApp.csproj" />
     </ItemGroup>
 </Project>

@@ -23,7 +23,5 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AvaloniaBlazorServer\AvaloniaBlazorServer.csproj"/>
-        <!-- Used instead of manuall dll reference since Asp.Net actually supports desktop platforms -->
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 </Project>
