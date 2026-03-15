@@ -20,12 +20,26 @@ public class HostService : Service
     private const string NotificationTitle = "Blazor Web Server";
     private const string NotificationText = "Blazor web server is running in the background";
     
-    private readonly CancellationTokenSource _tokenSource = new();
+    private CancellationTokenSource _tokenSource = new();
     private PowerManager.WakeLock? _wakeLock;
     private Task? _serverTask;
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
+        if (_serverTask is { IsCompleted: false })
+        {
+            _tokenSource.Cancel();
+            _serverTask.Wait();
+            if (_wakeLock is { IsHeld: true })
+            {
+                _wakeLock.Release();
+                _wakeLock = null;
+            }
+        }
+
+        _tokenSource.Dispose();
+        _tokenSource = new CancellationTokenSource();
+        
         StartForegroundService();
         AcquireWakeLock();
         _serverTask = ServerAppHost.Start(_tokenSource.Token);
@@ -49,6 +63,21 @@ public class HostService : Service
         return null;
     }
     
+    public override void OnTaskRemoved(Intent? rootIntent)
+    {
+        // Stop the service and clean up when app is removed from recents
+        _tokenSource.Cancel();
+        _serverTask?.Wait();
+        if (_wakeLock is { IsHeld: true })
+        {
+            _wakeLock.Release();
+            _wakeLock = null;
+        }
+
+        StopSelf();
+        base.OnTaskRemoved(rootIntent);
+    }
+
     private void StartForegroundService()
     {
         if (GetSystemService(NotificationService) is not NotificationManager notificationManager)
