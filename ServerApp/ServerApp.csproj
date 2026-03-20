@@ -9,7 +9,6 @@
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="BlazorBlueprint.Components" />
-      <PackageReference Include="Russkyc.Messaging" />
     </ItemGroup>
     <Import Project="ServerApp.targets" />
 </Project>

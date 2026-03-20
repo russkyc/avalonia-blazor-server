@@ -9,9 +9,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Russkyc.Messaging;
 using ServerApp.Components;
-using ServerApp.Messages;
 
 namespace ServerApp;
 
@@ -19,6 +17,7 @@ public static class ServerAppHost
 {
     // Configuration
     public const int Port = 5000;
+    public static Action<string>? OnServerStarted { get; set; }
     
     public static ICollection<string> Hosts { get; } = new List<string>();
 
@@ -111,7 +110,7 @@ public static class ServerAppHost
         }
 
         var localhost = Hosts.First(h => h.Contains("localhost"));
-        WeakReferenceMessenger.Default.Send(new ServerStartedEvent(localhost));
+        OnServerStarted?.Invoke(localhost);
         
         return app.WaitForShutdownAsync(token: serverTokenToken);
     }

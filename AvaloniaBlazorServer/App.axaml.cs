@@ -6,14 +6,11 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using AvaloniaWebView;
-using Russkyc.Messaging;
 using ServerApp;
-using ServerApp.Messages;
 
 namespace AvaloniaBlazorServer;
 
-public partial class App : Application
+public class App : Application
 {
     private readonly CancellationTokenSource _serverTokenSource = new();
     private Task? _serverTask;
@@ -30,9 +27,9 @@ public partial class App : Application
             _serverTask = ServerAppHost.Start(_serverTokenSource.Token);
             desktop.MainWindow = new Window()
             {
-                Content = new WebView()
+                Content = new NativeWebView()
                 {
-                    Url = new Uri($"localhost:{ServerAppHost.Port}"),
+                    Source = new Uri($"localhost:{ServerAppHost.Port}"),
                 }
             };
             desktop.ShutdownRequested += (_, _) =>
@@ -46,18 +43,17 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            var webview = new WebView();
+            var webview = new NativeWebView();
             webview.Loaded += (self, _) =>
             {
-                var blazorWebview = (WebView)self!;
+                var blazorWebview = (NativeWebView)self!;
 
                 // The server is started from a foreground service,
                 // wait for the server to start before navigating to the URL
-                WeakReferenceMessenger.Default.Register<ServerStartedEvent>(blazorWebview, (_, message) =>
+                ServerAppHost.OnServerStarted = hostUrl =>
                 {
-                    Console.WriteLine(message.HostUrl);
-                    Dispatcher.UIThread.Invoke(() => blazorWebview.Url = new Uri(message.HostUrl));
-                });
+                    Dispatcher.UIThread.Invoke(() => blazorWebview.Source = new Uri(hostUrl));
+                };
             };
             singleViewPlatform.MainView = webview;
         }
