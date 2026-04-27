@@ -52,15 +52,6 @@
             <Reference Remove="$(_SelectedDir)\Microsoft.Extensions.Primitives.dll" />
         </ItemGroup>
 
-        <ItemGroup Condition="'$(_SelectedDir)' != ''">
-            <Content Include="$(_SelectedDir)\Microsoft.AspNetCore.dll">
-                <Link>Microsoft.AspNetCore.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-                <Visible>false</Visible>
-                <Pack>false</Pack>
-            </Content>
-        </ItemGroup>
-
         <Message Importance="high" Text="[AspNetCoreHack] Shared Project Injecting Framework $(_MajorV).x from: $(_SelectedDir)" />
     </Target>
 
