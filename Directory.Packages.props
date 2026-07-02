@@ -7,17 +7,18 @@
     <!-- Avalonia packages -->
     <!-- Important: keep version in sync! -->
     <PackageVersion Include="Avalonia" Version="12.0.999-cibuild0062021-alpha" />
-    <PackageVersion Include="Avalonia.Controls.WebView" Version="12.0.0-rc1" />
+    <PackageVersion Include="Avalonia.Controls.WebView" Version="12.0.1" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.0.999-cibuild0062021-alpha" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.0.999-cibuild0062021-alpha" />
     <PackageVersion Include="Avalonia.Diagnostics" Version="12.0.999-cibuild0061243-alpha" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.0.999-cibuild0062021-alpha" />
     <PackageVersion Include="Avalonia.Android" Version="12.0.999-cibuild0062021-alpha" />
-    <PackageVersion Include="BlazorBlueprint.Components" Version="3.6.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.App.Internal.Assets" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.FileProviders.Physical" Version="10.0.5" />
-    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.2" />
+    <PackageVersion Include="BlazorBlueprint.Components" Version="3.12.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.App.Internal.Assets" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Physical" Version="10.0.9" />
+    <PackageVersion Include="Tmds.DBus.Protocol" Version="0.94.2" />
+    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.2.0.3" />
   </ItemGroup>
 </Project>

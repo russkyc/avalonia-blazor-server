@@ -3,10 +3,13 @@
     <PropertyGroup>
         <_CleanVNum>$(TargetFramework.Replace('net', ''))</_CleanVNum>
         <_MajorV>$(_CleanVNum.Split('.')[0])</_MajorV>
-
-        <_InfraVersion Condition="'$(ManagePackageVersionsCentrally)' != 'true'">$(_MajorV).0.0-*</_InfraVersion>
-
+        <_InfraVersion Condition="'$(ManagePackageVersionsCentrally)' != 'true'">10.0.9</_InfraVersion>
         <DotNetSharedPath Condition="'$(DotNetSharedPath)' == ''">C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App</DotNetSharedPath>
+        <!-- Force NuGet Root detection -->
+        <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == ''">$(NUGET_PACKAGES)</NuGetPackageRoot>
+        <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == ''">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+        <!-- Ensure trailing slash -->
+        <NuGetPackageRoot Condition="!HasTrailingSlash('$(NuGetPackageRoot)')">$(NuGetPackageRoot)\</NuGetPackageRoot>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,20 +27,14 @@
 
     <Target Name="InjectAspNetCoreReferences"
             BeforeTargets="FindReferenceAssembliesForReferences;ResolveAssemblyReferences;BeforeCompile">
-
         <ItemGroup>
             <_PotentialFolders Include="$([System.IO.Directory]::GetDirectories('$(DotNetSharedPath)', '$(_MajorV).*'))" />
         </ItemGroup>
-
         <PropertyGroup>
             <_SelectedDir>%(_PotentialFolders.Identity)</_SelectedDir>
         </PropertyGroup>
-
         <ItemGroup Condition="'$(_SelectedDir)' != ''">
-            <Reference Include="$(_SelectedDir)\*.dll">
-                <Private>True</Private>
-            </Reference>
-
+            <Reference Include="$(_SelectedDir)\*.dll"><Private>True</Private></Reference>
             <Reference Remove="$(_SelectedDir)\aspnetcorev2_inprocess.dll" />
             <Reference Remove="$(_SelectedDir)\Microsoft.AspNetCore.Server.IIS.dll" />
             <Reference Remove="$(_SelectedDir)\Microsoft.AspNetCore.Server.IISIntegration.dll" />
@@ -51,7 +48,6 @@
             <Reference Remove="$(_SelectedDir)\Microsoft.Extensions.Options.dll" />
             <Reference Remove="$(_SelectedDir)\Microsoft.Extensions.Primitives.dll" />
         </ItemGroup>
-
         <Message Importance="high" Text="[AspNetCoreHack] Shared Project Injecting Framework $(_MajorV).x from: $(_SelectedDir)" />
     </Target>
 
@@ -65,20 +61,38 @@
         <ItemGroup>
             <InternalPkgMetadata Include="@(PackageVersion)" Condition="'%(Identity)' == 'Microsoft.AspNetCore.App.Internal.Assets'"/>
         </ItemGroup>
+
         <PropertyGroup>
             <InternalPkgVersion>%(InternalPkgMetadata.Version)</InternalPkgVersion>
-            <InternalPkgPath>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets\$(InternalPkgVersion)\_framework\</InternalPkgPath>
+            <InternalPkgVersion Condition="'$(InternalPkgVersion)' == ''">$(_InfraVersion)</InternalPkgVersion>
+
+            <!-- Construct path based on your confirmation -->
+            <_PkgFrameworkPath>$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets\$(InternalPkgVersion)\_framework\</_PkgFrameworkPath>
         </PropertyGroup>
+
         <ItemGroup>
-            <FrameworkFiles Include="$(InternalPkgPath)**\*.web.js"/>
+            <!-- Direct inclusion of the files you found -->
+            <FrameworkFiles Include="$(_PkgFrameworkPath)*.js"/>
+            <FrameworkFiles Include="$(_PkgFrameworkPath)**\*.js"/>
+
             <PackageAssets Include="@(StaticWebAsset)" Condition="'%(SourceType)' == 'Package' AND !$([System.String]::new('%(RelativePath)').StartsWith('_framework/'))"/>
             <LocalAssets Include="@(StaticWebAsset)" Condition="'%(SourceType)' != 'Package' AND '%(SourceId)' == '$(MSBuildProjectName)'"/>
             <ExternalStaticFiles Include="$(ProjectDir)StaticFiles\**\*.*"/>
         </ItemGroup>
-        <Copy SourceFiles="@(FrameworkFiles)" DestinationFolder="$(ProjectDir)wwwroot\_framework\%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'$(InternalPkgVersion)' != ''"/>
+
+        <Message Importance="high" Text="[Sync] Source Path: $(_PkgFrameworkPath)" />
+        <Message Importance="high" Text="[Sync] Found @(FrameworkFiles->Count()) files to copy to _framework." />
+
+        <!-- Perform the copy -->
+        <Copy SourceFiles="@(FrameworkFiles)"
+              DestinationFolder="$(ProjectDir)wwwroot\_framework\%(RecursiveDir)"
+              SkipUnchangedFiles="true"
+              Condition="'@(FrameworkFiles)' != ''" />
+
         <Copy SourceFiles="%(PackageAssets.FullPath)" DestinationFiles="$(ProjectDir)wwwroot\_content\%(PackageAssets.SourceId)\%(PackageAssets.RelativePath)" SkipUnchangedFiles="true"/>
         <Copy SourceFiles="%(LocalAssets.FullPath)" DestinationFiles="$(ProjectDir)wwwroot\$([System.Text.RegularExpressions.Regex]::Replace('%(LocalAssets.RelativePath)', '(#\[\..*\]\?)', ''))" SkipUnchangedFiles="true" Condition="!$([System.String]::new('%(LocalAssets.FullPath)').StartsWith('$(ProjectDir)wwwroot'))"/>
         <Copy SourceFiles="@(ExternalStaticFiles)" DestinationFolder="$(ProjectDir)wwwroot\%(RecursiveDir)" SkipUnchangedFiles="true"/>
+
         <ItemGroup>
             <ManifestFile Include="$(IntermediateOutputPath)*.staticwebassets.endpoints.json"/>
         </ItemGroup>

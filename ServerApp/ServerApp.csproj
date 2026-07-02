@@ -9,6 +9,7 @@
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="BlazorBlueprint.Components" />
+      <PackageReference Include="Tmds.DBus.Protocol" />
     </ItemGroup>
     <Import Project="ServerApp.targets" />
 </Project>
